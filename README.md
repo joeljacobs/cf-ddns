@@ -7,13 +7,15 @@ This is intended to be used with cron or some other scheduler.
 
 Requires curl.
 
-You will need to provide the following:
+You will need to create a file in the same directory named "credentials" with the following information:
 + Your Cloudflare Key
-+ The host record name you want to change
 + Your CloudFlare email address
 + Your CloudFlare Zone
-+ The host record ID
++ The host record name you want to change
 
-To obtain your record ID (among other things,) you can use my CloudFlare Shell script: https://github.com/joeljacobs/cloudflare-shell
+A sample credentials file has been included.
 
-The hidden file that records your latest public IP address will be saved in $HOME/.wan_ip-cf.txt
+You can use my cloudflare-shell tool to manually view and edit your Cloudflare files from the command-line: https://github.com/joeljacobs/cloudflare-shell
+
+
+Note: The hidden file that records your latest public IP address will be saved in $HOME/.wan_ip-cf.txt
