@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # modified by jfro from http://www.cnysupport.com/index.php/linode-dynamic-dns-ddns-update-script
 # Uses curl to be compatible with machines that don't have wget by default
@@ -31,7 +31,7 @@ domain_records|jq ".response.recs.objs[]|select(.display_name==\"$1\")|.rec_id" 
 OLD_WAN_IP=$(/usr/bin/host -t A ${cfhost}.${zone}|cut -d " " -f 4)
 
 if [ "$WAN_IP" = "$OLD_WAN_IP" ]; then
-        echo "IP Unchanged ($WAN_IP = $OLD_WAN_IP)"
+        echo "IP Unchanged ($WAN_IP = $OLD_WAN_IP)" >/dev/null #commented out with /dev/null becasue of "if"
 else
         #echo $WAN_IP > $HOME/.wan_ip-cf.txt
         echo "Updating DNS to $WAN_IP"
