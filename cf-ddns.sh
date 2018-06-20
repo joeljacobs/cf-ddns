@@ -25,7 +25,7 @@ case $1 in
 		WAN_IP=${1-$CURRENT_IPV4} ;;
 esac
 
-echo "WAN_IP=$WAN_IP CURRENT_IP=$CURRENT_IP cfhost=$cfhost"
+#echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPV4=$CURRENT_IPV4 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
 
 
 function domain_records() {
