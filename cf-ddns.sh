@@ -6,8 +6,9 @@
 # Use $1 to force a certain IP.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" #sets the directory of this executable
-
 source $DIR/credentials
+
+INTERFACE=${2-"eth0"} #If using local IP, need to specify if not eth0
 
 IPSOURCE=$(curl -s http://www.google.com/search?q=my+ip)
 CURRENT_IPV6=$(echo "$IPSOURCE"|sed -n 's/.*(Client IP address: \([^)]*\)).*$/\1/p')
