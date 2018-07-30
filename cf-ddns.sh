@@ -4,6 +4,7 @@
 # modified by Ross Hosman for use with cloudflare.
 
 # Use $1 to force a certain IP.
+V4_URL='https://api.cloudflare.com/client/v4'
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" #sets the directory of this executable
 source $DIR/credentials
@@ -29,16 +30,23 @@ esac
 #echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPV4=$CURRENT_IPV4 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
 
 
+function domainid() {
+curl -X GET $V4_URL'/zones' \
+  -H 'X-Auth-Email: '$email \
+  -H 'X-Auth-Key: '$cfkey \
+  -H 'Content-Type: application/json' 2>/dev/null |jq "."|\
+jq ".result[]|select(.name==\"$zone\")|.id" -r
+}
+
 function domain_records() {
-curl -k https://www.cloudflare.com/api_json.html \
-  -d "tkn=$cfkey" \
-  -d "email=$email" \
-  -d "z=$zone" \
-  -d 'a=rec_load_all' 2>/dev/null |jq "."
+curl -X GET $V4_URL"/zones/$(domainid)/dns_records" \
+  -H 'X-Auth-Email: '$email \
+  -H 'X-Auth-Key: '$cfkey \
+  -H 'Content-Type: application/json' 2>/dev/null |jq "."
 }
 
 function record_id () {
-domain_records|jq ".response.recs.objs[]|select(.display_name==\"$1\")|.rec_id" -r
+domain_records|jq ".result[]|select(.name==\"$1.$zone\")|.id" -r
 }
 
 OLD_WAN_IP=$(host -t $TYPE ${cfhost}.${zone}|cut -d " " -f 4)
@@ -47,14 +55,19 @@ if [ "$WAN_IP" = "$OLD_WAN_IP" ]; then
         echo "IP Unchanged ($WAN_IP = $OLD_WAN_IP)" >/dev/null #commented out with /dev/null becasue of "if"
 else
         echo "Updating DNS to $WAN_IP"
-curl -k https://www.cloudflare.com/api_json.html \
--d "tkn=$cfkey" \
--d "email=$email" \
--d 'ttl=1' \
--d "z=$zone" \
--d 'a=rec_edit' \
--d "id=$(record_id $cfhost)" \
--d "type=$TYPE" \
--d "name=$cfhost" \
--d "content=$WAN_IP"
+function generate_post_data(){
+cat <<EOF
+{
+        "type": "$TYPE",
+        "name": "${cfhost}.${zone}",
+        "content": "$WAN_IP",
+        "proxied": false
+    }
+EOF
+}
+curl -X PUT $V4_URL"/zones/$(domainid)/dns_records/$(record_id $cfhost)" \
+    -H 'X-Auth-Email: '$email \
+    -H 'X-Auth-Key: '$cfkey \
+    -H 'Content-Type: application/json' \
+    --data "$(generate_post_data)"
 fi
