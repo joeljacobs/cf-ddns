@@ -47,7 +47,7 @@ if [ "$WAN_IP" == "$OLD_WAN_IP" ]; then
  echo "IP Unchanged ($WAN_IP = $OLD_WAN_IP)"
  exit 0
 else
- echo "Updating DNS ($WAN_IP from $OLD_WAN_IP)"
+ echo "Updating DNS to $WAN_IP (from $OLD_WAN_IP)"
 fi
 
 function generate_post_data(){
@@ -60,8 +60,6 @@ cat <<EOF
     }
 EOF
 }
-
-echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
 
 function update_dns_record () {
   curl -X PUT $V4_URL"/zones/$(domainid)/dns_records/$(record_id $cfhost)" \
