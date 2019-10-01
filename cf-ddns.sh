@@ -35,16 +35,10 @@ function domainid() {
   jq ".result[]|select(.name==\"$zone\")|.id" -r
 }
 
-
-function domain_records() {
+function record_id() {
   curl -X GET $V4_URL"/zones/$(domainid)/dns_records" \
        -H "Authorization: Bearer $cfkey" \
-       -H 'Content-Type: application/json' 2>/dev/null |jq "."
-}
-
-# Get the Record (CFHOST) ID
-function record_id () {
-  domain_records|jq ".result[]|select(.name==\"$1.$zone\")|.id" -r
+       -H 'Content-Type: application/json' 2>/dev/null |jq ".result[]|select(.name==\"$1.$zone\")|.id" -r
 }
 
 OLD_WAN_IP=$(host -t $TYPE ${cfhost}.${zone}|cut -d " " -f 4)
