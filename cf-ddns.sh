@@ -11,10 +11,9 @@ source $DIR/credentials
 
 INTERFACE=${2-"eth0"} #If using local IP, need to specify if not eth0
 
-IPSOURCE=$(curl -s http://www.google.com/search?q=my+ip)
-CURRENT_IPV6=$(echo "$IPSOURCE"|sed -n 's/.*(Client IP address: \([^)]*\)).*$/\1/p')
-CURRENT_IPV4=$(echo "$IPSOURCE"|egrep IP.*\:|sed 's/^.*\ \([0-9]*\.[0-9]*\.[0-9]*.[0-9]*\).*/\1/')
-CURRENT_IPLOCAL=$(ifconfig $INTERFACE |grep inet\ |cut -d ":" -f 2|cut -d " " -f 1)
+CURRENT_IPV4=$(curl https://v4.ident.me/)
+CURRENT_IPV6=$(curl https://v6.ident.me/)
+CURRENT_IPLOCAL=$(ip address show $INTERFACE | grep "inet " | xargs | cut -d " " -f2 | cut -d "/" -f1)
 
 case $1 in
 	6 )	TYPE="AAAA"
@@ -27,8 +26,7 @@ case $1 in
 		WAN_IP=${1-$CURRENT_IPV4} ;;
 esac
 
-#echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPV4=$CURRENT_IPV4 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
-
+#echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
 
 function domainid() {
 curl -X GET $V4_URL'/zones' \
@@ -55,6 +53,7 @@ if [ "$WAN_IP" = "$OLD_WAN_IP" ]; then
         echo "IP Unchanged ($WAN_IP = $OLD_WAN_IP)" >/dev/null #commented out with /dev/null becasue of "if"
 else
         echo "Updating DNS to $WAN_IP"
+
 function generate_post_data(){
 cat <<EOF
 {
@@ -65,6 +64,7 @@ cat <<EOF
     }
 EOF
 }
+
 curl -X PUT $V4_URL"/zones/$(domainid)/dns_records/$(record_id $cfhost)" \
     -H 'X-Auth-Email: '$email \
     -H 'X-Auth-Key: '$cfkey \
