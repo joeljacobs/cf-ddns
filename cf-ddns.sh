@@ -26,30 +26,35 @@ case $1 in
 		WAN_IP=${1-$CURRENT_IPV4} ;;
 esac
 
+#echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
+
 function domainid() {
-curl -X GET $V4_URL'/zones' \
-  -H "Authorization: Bearer $cfkey" \
-  -H 'Content-Type: application/json' 2>/dev/null |jq "."|\
-jq ".result[]|select(.name==\"$zone\")|.id" -r
+  curl -X GET $V4_URL'/zones' \
+       -H "Authorization: Bearer $cfkey" \
+       -H 'Content-Type: application/json' 2>/dev/null |jq "."|\
+  jq ".result[]|select(.name==\"$zone\")|.id" -r
 }
+
 
 function domain_records() {
   curl -X GET $V4_URL"/zones/$(domainid)/dns_records" \
-  -H "Authorization: Bearer $cfkey" \
-  -H 'Content-Type: application/json' 2>/dev/null |jq "."
+       -H "Authorization: Bearer $cfkey" \
+       -H 'Content-Type: application/json' 2>/dev/null |jq "."
 }
 
 # Get the Record (CFHOST) ID
 function record_id () {
-domain_records|jq ".result[]|select(.name==\"$cfhost\")|.id" -r
+  domain_records|jq ".result[]|select(.name==\"$1.$zone\")|.id" -r
 }
 
 OLD_WAN_IP=$(host -t $TYPE ${cfhost}.${zone}|cut -d " " -f 4)
 
-if [ "$WAN_IP" = "$OLD_WAN_IP" ]; then
-        echo "IP Unchanged ($WAN_IP = $OLD_WAN_IP)" >/dev/null #commented out with /dev/null becasue of "if"
+if [ "$WAN_IP" == "$OLD_WAN_IP" ]; then
+ echo "IP Unchanged ($WAN_IP = $OLD_WAN_IP)"
+ exit 0
 else
-        echo "Updating DNS to $WAN_IP"
+ echo "Updating DNS ($WAN_IP from $OLD_WAN_IP)"
+fi
 
 function generate_post_data(){
 cat <<EOF
@@ -64,9 +69,15 @@ EOF
 
 echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
 
-curl -X PUT $V4_URL"/zones/$(domainid)/dns_records/$(record_id $cfhost)" \
--H "Authorization: Bearer $cfkey" \
--H 'Content-Type: application/json' \
---data "$(generate_post_data)"
+function update_dns_record () {
+  curl -X PUT $V4_URL"/zones/$(domainid)/dns_records/$(record_id $cfhost)" \
+     -H "Authorization: Bearer $cfkey" \
+     -H 'Content-Type: application/json' \
+     --data "$(generate_post_data)" 2>/dev/null |jq ".success" -r
+}
 
+if [ "$(update_dns_record)" == "true" ]; then
+  echo "Successfully updated record."
+else
+  echo "There was an error updating the record"
 fi
