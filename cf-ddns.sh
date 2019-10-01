@@ -9,7 +9,7 @@ V4_URL='https://api.cloudflare.com/client/v4'
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" #sets the directory of this executable
 source $DIR/credentials
 
-INTERFACE=${2-"bridge0"} #If using local IP, need to specify if not eth0
+INTERFACE=${2-"eth0"} #If using local IP, need to specify if not eth0
 
 CURRENT_IPV4=$(curl https://v4.ident.me/ 2>/dev/null)
 CURRENT_IPV6=$(curl https://v6.ident.me/ 2>/dev/null)
