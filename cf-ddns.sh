@@ -3,16 +3,16 @@
 # Uses curl to be compatible with machines that don't have wget by default
 # modified by Ross Hosman for use with cloudflare.
 
-# Use $1 to force a certain IP.
+# Use parameters to force a certain IP.
 V4_URL='https://api.cloudflare.com/client/v4'
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" #sets the directory of this executable
 source $DIR/credentials
 
-INTERFACE=${2-"eth0"} #If using local IP, need to specify if not eth0
+INTERFACE=${2-"bridge0"} #If using local IP, need to specify if not eth0
 
-CURRENT_IPV4=$(curl https://v4.ident.me/)
-CURRENT_IPV6=$(curl https://v6.ident.me/)
+CURRENT_IPV4=$(curl https://v4.ident.me/ 2>/dev/null)
+CURRENT_IPV6=$(curl https://v6.ident.me/ 2>/dev/null)
 CURRENT_IPLOCAL=$(ip address show $INTERFACE | grep "inet " | xargs | cut -d " " -f2 | cut -d "/" -f1)
 
 case $1 in
@@ -26,25 +26,22 @@ case $1 in
 		WAN_IP=${1-$CURRENT_IPV4} ;;
 esac
 
-#echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
-
 function domainid() {
 curl -X GET $V4_URL'/zones' \
-  -H 'X-Auth-Email: '$email \
-  -H 'X-Auth-Key: '$cfkey \
+  -H "Authorization: Bearer $cfkey" \
   -H 'Content-Type: application/json' 2>/dev/null |jq "."|\
 jq ".result[]|select(.name==\"$zone\")|.id" -r
 }
 
 function domain_records() {
-curl -X GET $V4_URL"/zones/$(domainid)/dns_records" \
-  -H 'X-Auth-Email: '$email \
-  -H 'X-Auth-Key: '$cfkey \
+  curl -X GET $V4_URL"/zones/$(domainid)/dns_records" \
+  -H "Authorization: Bearer $cfkey" \
   -H 'Content-Type: application/json' 2>/dev/null |jq "."
 }
 
+# Get the Record (CFHOST) ID
 function record_id () {
-domain_records|jq ".result[]|select(.name==\"$1.$zone\")|.id" -r
+domain_records|jq ".result[]|select(.name==\"$cfhost\")|.id" -r
 }
 
 OLD_WAN_IP=$(host -t $TYPE ${cfhost}.${zone}|cut -d " " -f 4)
@@ -65,9 +62,11 @@ cat <<EOF
 EOF
 }
 
+echo "WAN_IP=$WAN_IP CURRENT_IPV6=$CURRENT_IPV6 CURRENT_IPLOCAL=$CURRENT_IPLOCAL cfhost=$cfhost"
+
 curl -X PUT $V4_URL"/zones/$(domainid)/dns_records/$(record_id $cfhost)" \
-    -H 'X-Auth-Email: '$email \
-    -H 'X-Auth-Key: '$cfkey \
-    -H 'Content-Type: application/json' \
-    --data "$(generate_post_data)"
+-H "Authorization: Bearer $cfkey" \
+-H 'Content-Type: application/json' \
+--data "$(generate_post_data)"
+
 fi
